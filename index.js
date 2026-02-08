@@ -4,10 +4,8 @@ import dotenv from "dotenv";
 dotenv.config();
 import admin from "firebase-admin";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import serviceAccount from "./blood-donation-firebase-adminsdk.json" with { type: "json" };
 
-//! Firebase Admin SDK init using environment variable
-//import serviceAccount from "./blood-donation-firebase-adminsdk.json" with { type: "json" };
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 
 const app = express();
 const port = process.env.PORT || 3000;
