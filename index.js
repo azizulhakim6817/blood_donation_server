@@ -32,7 +32,7 @@ const client = new MongoClient(process.env.DATABASE_URL, {
 
 async function run() {
   try {
-    await client.connect();
+    //await client.connect();
     const db = client.db("blood-donation");
     const usersCollection = db.collection("users");
     const bloodDonationRequestsCollection = db.collection("donation-requests");
@@ -488,7 +488,7 @@ async function run() {
     });
 
     /* end------------------------------------------ */
-    await client.db("admin").command({ ping: 1 });
+    //await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
