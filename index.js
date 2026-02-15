@@ -46,30 +46,21 @@ async function run() {
 
     //! firebase verify token---------------
     const verifyFBToken = async (req, res, next) => {
-      //console.log("headerss", req?.headers?.authorization);
       try {
         const token = req?.headers?.authorization;
-        if (!token) {
-          return res.status(401).send({ message: "unauthorized!" });
-        }
-        const idToken = token.split(" ")[1];
-        const decode = await admin?.auth().verifyIdToken(idToken);
+        if (!token) return res.status(401).send({ message: "Unauthorized!" });
 
-        //
+        const idToken = token.split(" ")[1];
+        const decode = await admin.auth().verifyIdToken(idToken);
+
         const user = await usersCollection.findOne({ email: decode.email });
-        if (!user) {
-          return res.status(404).send({ message: "User not found!" });
-        }
-        if (user.status === "blocked") {
-          return res
-            .status(403)
-            .send({ message: "Your account is blocked. Contact admin." });
-        }
-        //console.log(decode);
+        if (!user) return res.status(404).send({ message: "User not found!" });
+
         req.decode_email = decode.email;
         next();
       } catch (error) {
-        return res.status(401).send({ message: "unauthorized!" });
+        console.error("Firebase verify error:", error);
+        res.status(401).send({ message: "Unauthorized!" });
       }
     };
 
@@ -175,12 +166,18 @@ async function run() {
 
     //! funding get-all----------------------
     app.get("/get-funding", async (req, res) => {
-      const result = await fundingCollection
-        .find()
-        .sort({ fundingDate: -1 })
-        .toArray();
-      res.send(result);
+      try {
+        const result = await fundingCollection
+          .find()
+          .sort({ fundingDate: -1 })
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+      }
     });
+
     //! funding get-by-emails----------------------
     app.get("/get-single-funding", async (req, res) => {
       const { email } = req.query;
