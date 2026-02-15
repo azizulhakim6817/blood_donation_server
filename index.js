@@ -102,23 +102,22 @@ async function run() {
     app.post("/create-checkout-session", async (req, res) => {
       try {
         const { donorName, donorEmail, amount } = req.body;
-
         if (!donorName || !donorEmail || !amount) {
           return res.status(400).send({ error: "All fields are required" });
         }
 
-        const unitAmount = Number(amount) * 100; 
+        const unitAmount = Number(amount) * 100;
 
         // Stripe Checkout session
         const session = await stripe.checkout.sessions.create({
-          payment_method_types: ["card"], 
+          payment_method_types: ["card"],
           line_items: [
             {
               price_data: {
                 currency: "usd",
                 unit_amount: unitAmount,
                 product_data: {
-                  name: `Donation from ${donorName}`, 
+                  name: `Donation from ${donorName}`,
                 },
               },
               quantity: 1,
