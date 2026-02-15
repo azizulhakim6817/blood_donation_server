@@ -4,7 +4,13 @@ import dotenv from "dotenv";
 dotenv.config();
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import admin from "firebase-admin";
-import serviceAccount from "./blood-donation-firebase-adminsdk.json" with { type: "json" };
+
+//deployement-----Deploy.keyconvert.js----
+// import serviceAccount from "./blood-donation-firebase-adminsdk.json" with { type: "json" };
+const decoded = Buffer.from(process.env.FB_SERVER_KEY, "base64").toString(
+  "utf8",
+);
+const serviceAccount = JSON.parse(decoded);
 
 //! payment method---------------
 import Stripe from "stripe";
@@ -32,7 +38,7 @@ const client = new MongoClient(process.env.DATABASE_URL, {
 
 async function run() {
   try {
-    //await client.connect();
+    await client.connect();
     const db = client.db("blood-donation");
     const usersCollection = db.collection("users");
     const bloodDonationRequestsCollection = db.collection("donation-requests");
@@ -490,9 +496,9 @@ async function run() {
 
     /* --------------------end----------------*/
     // await client.db("admin").command({ ping: 1 });
-    console.log(
+    /* console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
-    );
+    ); */
   } finally {
     //await client.close();
   }
