@@ -75,7 +75,7 @@ npm run dev
 
 # Production
 npm start
-Server will start at: http://localhost:5000
+Server will start at: https://blood-donation-server-hazel.vercel.app
 
 API Endpoints
 Auth
