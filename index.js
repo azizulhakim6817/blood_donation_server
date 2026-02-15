@@ -6,6 +6,10 @@ import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import admin from "firebase-admin";
 import serviceAccount from "./blood-donation-firebase-adminsdk.json" with { type: "json" };
 
+//! payment method---------------
+import Stripe from "stripe";
+const stripe = new Stripe(process.env.STPIPE_SECRET);
+
 //! SDK--------------------------
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -93,13 +97,74 @@ async function run() {
       next();
     };
 
+    //* payement methods---------------------
+    //! payement---------------------
+    app.post("/create-checkout-session", async (req, res) => {
+      try {
+        const { donorName, donorEmail, amount } = req.body;
+
+        if (!donorName || !donorEmail || !amount) {
+          return res.status(400).send({ error: "All fields are required" });
+        }
+
+        const unitAmount = Number(amount) * 100; 
+
+        // Stripe Checkout session
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"], 
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                unit_amount: unitAmount,
+                product_data: {
+                  name: `Donation from ${donorName}`, 
+                },
+              },
+              quantity: 1,
+            },
+          ],
+          mode: "payment",
+          customer_email: donorEmail,
+          metadata: {
+            donorName,
+          },
+          success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancel`,
+        });
+
+        res.send({ url: session.url });
+      } catch (error) {
+        console.error("Stripe error:", error);
+        res
+          .status(500)
+          .send({ error: error.message || "Stripe checkout failed" });
+      }
+    });
+
     //* funding-crud ---------------------------------
     //! funding create-------------------------
     app.post("/funding", async (req, res) => {
-      const newFunding = req.body;
-      newFunding.fundingDate = new Date();
-      const result = await fundingCollection.insertOne(newFunding);
-      res.send(result);
+      try {
+        const newAmount = req.body;
+        if (
+          !newAmount.donorName ||
+          !newAmount.donorEmail ||
+          !newAmount.amount
+        ) {
+          return res.status(400).send({ error: "All fields are required" });
+        }
+
+        newAmount.amount = Number(newAmount.amount);
+        newAmount.createdAt = new Date();
+
+        const result = await fundingCollection.insertOne(newAmount);
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding funding:", error);
+        res.status(500).send({ error: "Failed to add funding" });
+      }
     });
 
     //! funding get-all----------------------
@@ -173,7 +238,7 @@ async function run() {
       res.send(result);
     });
 
-    //! get user------------------------------------------------
+    //! get user- query-----------------------------------------------
     app.get("/get-user", verifyFBToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
@@ -253,7 +318,7 @@ async function run() {
       res.send(result);
     });
 
-    //! get-donation-request--query-email---------------------
+    //! get-donation-request--query--> -email---------------------
     app.get("/donation-requests", async (req, res) => {
       try {
         const { requesterEmail } = req.query;
@@ -273,7 +338,7 @@ async function run() {
         res.status(500).json({ message: "Failed to fetch donation requests" });
       }
     });
-    //! get by id donation request---------------
+    //! get by -->  id donation request---------------
     app.get("/single-donation-requests/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -282,14 +347,59 @@ async function run() {
     });
 
     //! get all blood-donation-request-----------
-    app.get(
-      "/all-blood/donations/request",
-      verifyFBToken,
-      async (req, res) => {
-        const resutl = await bloodDonationRequestsCollection.find().toArray();
-        res.send(resutl);
-      },
-    );
+    app.get("/all-blood/donations/request", verifyFBToken, async (req, res) => {
+      const resutl = await bloodDonationRequestsCollection.find().toArray();
+      res.send(resutl);
+    });
+
+    //! get-query-status--> bloodGroup-district-upazila---------
+    app.get("/match-data/blood/donations/request", async (req, res) => {
+      const { bloodGroup, district, upazila } = req.query;
+
+      const query = {};
+      if (bloodGroup) query.bloodGroup = bloodGroup;
+      if (district) query.recipientDistrict = district;
+      if (upazila) query.recipientUpazila = upazila;
+
+      const result = await bloodDonationRequestsCollection
+        .find(query)
+        .toArray();
+      console.log(result);
+      res.send(result);
+    });
+
+    //!! get-query-status--> pending----------------------------
+    app.get("/get-pending/donation-request", async (req, res) => {
+      const { status } = req.query;
+      const query = {};
+      if (status) {
+        query.status = "pending";
+      }
+      const resutl = await bloodDonationRequestsCollection
+        .find(query)
+        .toArray();
+
+      res.send(resutl);
+    });
+
+    //! Get all donation requests for donor (for My Donation Requests page)
+    app.get("/donation-requests/all", async (req, res) => {
+      try {
+        const { email } = req.query;
+        if (!email)
+          return res.status(400).json({ message: "User email required" });
+
+        const donationRequests = await bloodDonationRequestsCollection
+          .find({ requesterEmail: email })
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.json(donationRequests);
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
 
     //! update-status update-donation-status-------------
     app.patch("/update-donation-status/:id", async (req, res) => {
@@ -327,22 +437,21 @@ async function run() {
       }
     });
 
-    //! Get all donation requests for donor (for My Donation Requests page)
-    app.get("/donation-requests/all", async (req, res) => {
+    //! update-donation-request-id---> pendign to inprogress----------
+    app.patch("/donation-requests/:id/status", async (req, res) => {
       try {
-        const { email } = req.query;
-        if (!email)
-          return res.status(400).json({ message: "User email required" });
+        const id = req.params.id;
+        const { status } = req.body;
 
-        const donationRequests = await bloodDonationRequestsCollection
-          .find({ requesterEmail: email })
-          .sort({ createdAt: -1 })
-          .toArray();
+        const result = await bloodDonationRequestsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } },
+        );
 
-        res.json(donationRequests);
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server error" });
+        res.send(result);
+      } catch (error) {
+        console.error("Donation Update Error:", error);
+        res.status(500).send({ message: "Server error" });
       }
     });
 
