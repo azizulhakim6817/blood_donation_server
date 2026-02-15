@@ -67,32 +67,33 @@ async function run() {
       }
     };
 
-    //! verify token----------------------
     //* middleware admin before allowing admin activity--------------
-
-    //!( verify admin) must be used after verify firebase token middleware------
+    //! Admin------------------
+    //! verify token----------------------
     const verifyAdmin = async (req, res, next) => {
-      const email = req.decode_email;
-      const query = { email };
-      if (!email) return res.status(401).send({ message: "Unauthorized!" });
-
-      const user = await usersCollection.findOne(query);
-
+      const user = await usersCollection.findOne({ email: req.decode_email });
       if (!user || user.role !== "admin") {
-        return res.status(403).send({ message: "Forbidden!" });
+        return res.status(403).send({ message: "Forbidden! Admins only." });
       }
       next();
     };
-    //! (veryfy donor) must be used after verify firebase token middleware------
-    const verifyRider = async (req, res, next) => {
-      const email = req.decode_email;
-      const query = { email };
-      if (!email) return res.status(401).send({ message: "Unauthorized!" });
 
-      const user = await usersCollection.findOne(query);
+    //! Volunteer----------------------
+    //! verify token----------------------
+    const verifyVolunteer = async (req, res, next) => {
+      const user = await usersCollection.findOne({ email: req.decode_email });
+      if (!user || user.role !== "volunteer") {
+        return res.status(403).send({ message: "Forbidden! Volunteers only." });
+      }
+      next();
+    };
 
-      if (!user || user.role !== "rider") {
-        return res.status(403).send({ message: "Forbidden!" });
+    //! Donor----------------------------------
+    //! verify token----------------------
+    const verifyDonor = async (req, res, next) => {
+      const user = await usersCollection.findOne({ email: req.decode_email });
+      if (!user || user.role !== "donor") {
+        return res.status(403).send({ message: "Forbidden! Donors only." });
       }
       next();
     };
