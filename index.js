@@ -330,7 +330,7 @@ async function run() {
       res.send(result);
     });
 
-    //! get-donation-request--query--> -email---------------------
+    //! get-donation-request--query---email---------------------
     app.get("/donation-requests", async (req, res) => {
       try {
         const { requesterEmail } = req.query;
@@ -350,7 +350,7 @@ async function run() {
         res.status(500).json({ message: "Failed to fetch donation requests" });
       }
     });
-    //! get by -->  id donation request---------------
+    //! get by -- id donation request---------------
     app.get("/single-donation-requests/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -364,7 +364,7 @@ async function run() {
       res.send(resutl);
     });
 
-    //! get-query-status--> bloodGroup-district-upazila---------
+    //! get-query-status-- bloodGroup-district-upazila---------
     app.get("/match-data/blood/donations/request", async (req, res) => {
       const { bloodGroup, district, upazila } = req.query;
 
@@ -394,7 +394,7 @@ async function run() {
       res.send(resutl);
     });
 
-    //! Get all donation requests for donor (for My Donation Requests page)
+    //! get all donation requests for donor (for My Donation Requests page)
     app.get("/donation-requests/all", async (req, res) => {
       try {
         const { email } = req.query;
@@ -449,7 +449,7 @@ async function run() {
       }
     });
 
-    //! update-donation-request-id---> pendign to inprogress----------
+    //! update-donation-request-id-- pendign to inprogress----------
     app.patch("/donation-requests/:id/status", async (req, res) => {
       try {
         const id = req.params.id;
@@ -487,8 +487,8 @@ async function run() {
       }
     });
 
-    /* end------------------------------------------ */
-    //await client.db("admin").command({ ping: 1 });
+    /* --------------------end----------------*/
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
