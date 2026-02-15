@@ -174,6 +174,19 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    //! funding get-by-emails----------------------
+    app.get("/get-single-funding", async (req, res) => {
+      const { email } = req.query;
+      const query = {};
+      if (email) {
+        query.donorEmail = email;
+      }
+      const result = await fundingCollection
+        .find(query)
+        .sort({ fundingDate: -1 })
+        .toArray();
+      res.send(result);
+    });
 
     //! Dashboard get dashboard/donor/count/stats-------------
     app.get("/dashboard/donor/count/stats", async (req, res) => {
